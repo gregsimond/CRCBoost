@@ -11,12 +11,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=42):
     """Load and prepare survival data for training and testing.
 
-    This function loads feature and outcome data from feather files, aligns them by patient ID,
+    This function loads feature and outcome data from feather or csv files, aligns them by patient ID,
     and splits them into training and test sets. (Validation set derived from training set e.g. by cross-validation)
 
     Args:
-        features_path (str): Path to the features feather file relative to project root
-        outcomes_path (str): Path to the survival outcomes feather file relative to project root
+        features_path (str): Path to the features file (feather or csv) relative to project root
+        outcomes_path (str): Path to the survival outcomes file (feather or csv) relative to project root
         split_ratio (float, optional): Ratio of data to use for training. Default is 0.8.
         random_state (int, optional): Random seed for reproducibility. Use same seed for all steps of the pipeline. Default is 42.
 
@@ -28,9 +28,23 @@ def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=4
     Raises:
         ValueError: If features and outcomes have different lengths after alignment
     """
-    # Load features & outcomes
-    features = pd.read_feather(os.path.join(PROJECT_ROOT, features_path))
-    outcomes = pd.read_feather(os.path.join(PROJECT_ROOT, outcomes_path))
+    # Load features & outcomes based on file extension
+    features_path_full = os.path.join(PROJECT_ROOT, features_path)
+    outcomes_path_full = os.path.join(PROJECT_ROOT, outcomes_path)
+    
+    if features_path.endswith('.feather'):
+        features = pd.read_feather(features_path_full)
+    elif features_path.endswith('.csv'):
+        features = pd.read_csv(features_path_full)
+    else:
+        raise ValueError(f"Unsupported features file format: {features_path}")
+        
+    if outcomes_path.endswith('.feather'):
+        outcomes = pd.read_feather(outcomes_path_full)
+    elif outcomes_path.endswith('.csv'):
+        outcomes = pd.read_csv(outcomes_path_full)
+    else:
+        raise ValueError(f"Unsupported outcomes file format: {outcomes_path}")
 
     # Only select the intersection of eids between features and outcomes
     common_eids = set(features['eid']).intersection(set(outcomes['eid']))
