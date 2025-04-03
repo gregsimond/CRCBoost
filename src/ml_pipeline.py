@@ -8,7 +8,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ### Data loading ###
 
-def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=42):
+def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=42, 
+                   features_id_column='eid', outcomes_id_column='eid'):
     """Load and prepare survival data for training and testing.
 
     This function loads feature and outcome data from feather or csv files, aligns them by patient ID,
@@ -19,6 +20,8 @@ def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=4
         outcomes_path (str): Path to the survival outcomes file (feather or csv) relative to project root
         split_ratio (float, optional): Ratio of data to use for training. Default is 0.8.
         random_state (int, optional): Random seed for reproducibility. Use same seed for all steps of the pipeline. Default is 42.
+        features_id_column (str, optional): Name of the column containing patient IDs in features file. Default is 'eid'.
+        outcomes_id_column (str, optional): Name of the column containing patient IDs in outcomes file. Default is 'eid'.
 
     Returns:
         tuple: Contains (X_train, X_test, y_train, y_test) where:
@@ -46,19 +49,23 @@ def load_surv_data(features_path, outcomes_path, split_ratio=0.8, random_state=4
     else:
         raise ValueError(f"Unsupported outcomes file format: {outcomes_path}")
 
-    # Only select the intersection of eids between features and outcomes
-    common_eids = set(features['eid']).intersection(set(outcomes['eid']))
-    features = features[features['eid'].isin(common_eids)]
-    outcomes = outcomes[outcomes['eid'].isin(common_eids)]
+    # Only select the intersection of IDs between features and outcomes
+    common_ids = set(features[features_id_column]).intersection(set(outcomes[outcomes_id_column]))
+    features = features[features[features_id_column].isin(common_ids)]
+    outcomes = outcomes[outcomes[outcomes_id_column].isin(common_ids)]
 
-    # Order by eid to ensure features and outcomes are aligned
-    features = features.sort_values(by='eid')
-    outcomes = outcomes.sort_values(by='eid')
+    # Order by ID to ensure features and outcomes are aligned
+    features = features.sort_values(by=features_id_column)
+    outcomes = outcomes.sort_values(by=outcomes_id_column)
 
     # Check that features and outcomes have same number of rows
     if len(features) != len(outcomes):
         raise ValueError(f"Features and outcomes have different lengths: features={len(features)}, outcomes={len(outcomes)}")
     print(f"\nSuccessfully loaded {len(features)} samples with matching features and outcomes")
+
+    # Remove ID columns
+    features = features.drop(columns=[features_id_column])
+    outcomes = outcomes.drop(columns=[outcomes_id_column])
 
     # Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(features, outcomes, test_size=1-split_ratio, random_state=random_state)
@@ -103,17 +110,17 @@ def tune_xgboost_stepwise(X_train, y_train, random_state=42):
     
     # Set baseline parameters
     params = {
-        'eta': 0.1,
-        'max_depth': 3,
-        'min_child_weight': 1,
-        'gamma': 0,
-        'subsample': 1,
-        'colsample_bytree': 1,
-        'lambda': 1,  # analogous to Ridge regression
-        'alpha': 0,
-        'objective': 'survival:cox',
-        'tree_method': 'hist',
-        'device': 'cuda'
+        'eta': 0.1,  # learning rate
+        'max_depth': 3,  # max depth of trees
+        'min_child_weight': 1,  # minimum sum of instance weight (hessian) needed in a child
+        'gamma': 0,  # minimum loss reduction required to make a further partition on a leaf node
+        'subsample': 1,  # subsample ratio of the training instance
+        'colsample_bytree': 1,  # subsample ratio of columns when constructing each tree
+        'lambda': 1,  # analogous to Ridge/L2
+        'alpha': 0,  # analogous to Lasso/L1
+        'objective': 'survival:cox',  # Cox partial likelihood loss function
+        'tree_method': 'hist',  # histogram-based tree method
+        'device': 'cuda'  # use GPU for training
     }
     
     # Train model with early stopping

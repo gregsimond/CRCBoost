@@ -22,7 +22,9 @@ if __name__ == "__main__":
         features_path=experiment_config['features_path'],
         outcomes_path=experiment_config['outcomes_path'],
         split_ratio=experiment_config['split_ratio'],
-        random_state=experiment_config['random_state']
+        random_state=experiment_config['random_state'],
+        features_id_column=experiment_config['features_id_column'],
+        outcomes_id_column=experiment_config['outcomes_id_column']
     )
 
     if experiment_config['method'] == 'stepwise':
