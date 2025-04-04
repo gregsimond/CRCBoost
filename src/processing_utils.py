@@ -12,9 +12,9 @@ def display_included_cats(included_cols: list) -> tuple[dict, pd.DataFrame]:
     Output: Returns both a tree (as dict in the format {parent: [children]}) and a pretty pandas dataframe.
     """
     # Metadata files from UKB Schema - https://biobank.ndph.ox.ac.uk/showcase/schema.cgi
-    cat_hierarchy = pd.read_csv("../data/raw/ukb_metadata/catbrowse.txt", sep="\t") # Schema 13
-    cat_metadata = pd.read_csv("../data/raw/ukb_metadata/category.txt", sep="\t") # Schema 3
-    fields_metadata = pd.read_csv("../data/raw/ukb_metadata/field.txt", sep="\t") # Schema 1
+    cat_hierarchy = pd.read_csv("../data/ukb_metadata/catbrowse.txt", sep="\t") # Schema 13
+    cat_metadata = pd.read_csv("../data/ukb_metadata/category.txt", sep="\t") # Schema 3
+    fields_metadata = pd.read_csv("../data/ukb_metadata/field.txt", sep="\t") # Schema 1
     
     # Build a dictionary to represent the tree
     tree = {}
@@ -87,7 +87,7 @@ def get_cat_and_downstream(parent_cat: int, cat_tree: dict) -> list:
 
 def remove_cat_cols(columns: list, categories: list) -> list:
     """ Removes all columns associated with a list of categories """
-    fields_metadata = pd.read_csv("../data/raw/ukb_metadata/field.txt", sep="\t") # UKB Schema 1
+    fields_metadata = pd.read_csv("../data/ukb_metadata/field.txt", sep="\t") # UKB Schema 1
     fields_to_remove = fields_metadata.loc[fields_metadata['main_category'].isin(categories), 'field_id'].tolist()
     new_columns = remove_fields(columns, fields_to_remove)
     return new_columns
@@ -118,8 +118,8 @@ def display_arrayed_fields(columns: list) -> pd.DataFrame:
         201: 'Blob'
     }
 
-    fields_metadata = pd.read_csv("../data/raw/ukb_metadata/field.txt", sep="\t") # Schema 1
-    cat_metadata = pd.read_csv("../data/raw/ukb_metadata/category.txt", sep="\t") # Schema 3
+    fields_metadata = pd.read_csv("../data/ukb_metadata/field.txt", sep="\t") # Schema 1
+    cat_metadata = pd.read_csv("../data/ukb_metadata/category.txt", sep="\t") # Schema 3
     arrayed_fields = {}
     
     for col in columns:
